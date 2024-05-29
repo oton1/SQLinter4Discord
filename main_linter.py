@@ -32,11 +32,9 @@ def beautify_sql(sql_query):
         wrap_after=80,      
     )
 
-    # Custom formatting for SELECT statement
     select_pattern = re.compile(r'(SELECT\s+)(.*?)(\s+FROM\s+)', re.IGNORECASE | re.DOTALL)
     formatted_query = select_pattern.sub(lambda m: m.group(1) + '\n    ' + m.group(2).replace(', ', ',\n    ') + '\n' + m.group(3), formatted_query)
 
-    # Remove any extra empty lines that may have been introduced
     formatted_query = re.sub(r'\n\s*\n', '\n', formatted_query)
 
     lines = formatted_query.split('\n')
