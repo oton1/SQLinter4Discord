@@ -5,7 +5,7 @@ VALID_FUNCTIONS = [
     'current_date', 'current_time', 'current_timestamp', 'date_add', 'date_sub', 
     'datediff', 'now', 'to_date', 'to_char', 'to_timestamp', 'concat', 'length', 
     'lower', 'upper', 'substring', 'trim', 'ltrim', 'rtrim', 'replace', 'coalesce', 
-    'nullif', 'case', 'if'
+    'nullif', 'case', 'if', 'like'
 ]
 
 def is_balanced_parentheses(query):
@@ -19,6 +19,11 @@ def is_balanced_parentheses(query):
             stack.pop()
     return not stack
 
+def is_balanced_quotes(query):
+    single_quotes = query.count("'")
+    double_quotes = query.count('"')
+    return single_quotes % 2 == 0 and double_quotes % 2 == 0
+
 def validate_sql(query):
     query = ' '.join(query.split())
     query = query.strip()
@@ -28,6 +33,9 @@ def validate_sql(query):
     
     if not is_balanced_parentheses(query):
         return False, "Parênteses desbalanceados"
+    
+    if not is_balanced_quotes(query):
+        return False, "Número de aspas desbalanceado"
     
     if 'from' not in query.lower():
         return False, "Query deve conter cláusula FROM"
@@ -49,7 +57,8 @@ if __name__ == "__main__":
         "SELECT name, email FROM users",
         "INSERT INTO users (name, email) VALUES ('John', 'john@example.com')",
         "SELECT COUNT(*) FROM orders",
-        "SELECT * FROM orders WHERE user_id = (SELECT id FROM users WHERE email = 'john@example.com')"
+        "SELECT * FROM orders WHERE user_id = (SELECT id FROM users WHERE email = 'john@example.com')",
+        "SELECT * FROM orders WHERE description = 'Order \"Special\"'"
     ]
     for query in test_queries:
         is_valid, message = validate_sql(query)
