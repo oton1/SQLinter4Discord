@@ -5,9 +5,10 @@ from dotenv import load_dotenv
 import os
 from linter import validate_sql
 
+
 load_dotenv()
 
-intents = discord.Intents.all()
+intents = discord.Intents.default()
 intents.message_content = True
 client = discord.Client(intents=intents)
 
@@ -63,25 +64,33 @@ def beautify_sql(sql_query):
 async def on_message(message):
     if message.author == client.user:
         return
-    
+
     if message.content.startswith('!sql'):
-        sql_query = message.content[len('!sql '):]
-        is_valid, validation_message = validate_sql(sql_query)
-        if is_valid:
-            formatted_query = beautify_sql(sql_query)
-            embed = discord.Embed(title="SQLinter", description=f"```sql\n{formatted_query}\n```", color=0x00ff00)
+        sql_query = message.content[len('!sql '):].strip()
+        
+        if message.attachments:
+            for attachment in message.attachments:
+                if attachment.filename.endswith('.txt'):
+                    sql_query = await attachment.read()
+                    sql_query = sql_query.decode('utf-8') 
+        
+        if sql_query:
+            is_valid, validation_message = validate_sql(sql_query)
+            if is_valid:
+                formatted_query = beautify_sql(sql_query)
+                embed = discord.Embed(title="SQLinter", description=f"```sql\n{formatted_query}\n```", color=0x00ff00)
+            else:
+                embed = discord.Embed(title="SQLinter", description=f"Query SQL inválida: {validation_message}", color=0xff0000)
+            await message.channel.send(embed=embed)
         else:
-            embed = discord.Embed(title="SQLinter", description=f"Query SQL inválida: {validation_message}", color=0xff0000)
-        await message.channel.send(embed=embed)
+            await message.channel.send("Nenhuma query SQL fornecida.")
     
     elif message.content.startswith('!help'):
-        embed = discord.Embed(title="SQLinter", description="Use `!sql <your SQL query>`.", color=0x00ff00)
+        embed = discord.Embed(title="SQLinter", description="Use `!sql <your SQL query>` ou anexe um arquivo .txt com a query.", color=0x00ff00)
         await message.channel.send(embed=embed)
 
 @client.event
 async def on_ready():
-    print(f'We have logged in as {client.user}')
+    print(f'{client.user} has connected to Discord!')
 
 client.run(os.getenv('TOKEN'))
-
-#próximo passo: fazer o bot aceitar arquivos de texto com queries
