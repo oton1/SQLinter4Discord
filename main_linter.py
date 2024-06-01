@@ -27,19 +27,26 @@ def beautify_sql(sql_query):
         sql_query,
         reindent=True,
         keyword_case='upper',
-        indent_tabs=False,  
-        indent_width=4,     
-        wrap_after=80,      
+        indent_tabs=False,
+        indent_width=4,
+        wrap_after=80,
     )
 
+    formatted_query = re.sub(r'\s+CASE\b', '\nCASE', formatted_query, flags=re.IGNORECASE)
+    formatted_query = re.sub(r'\s+WHEN\b', '\nWHEN', formatted_query, flags=re.IGNORECASE)
+    formatted_query = re.sub(r'\s+THEN\b', '\nTHEN', formatted_query, flags=re.IGNORECASE)
+    formatted_query = re.sub(r'\s+ELSE\b', '\nELSE', formatted_query, flags=re.IGNORECASE)
+    formatted_query = re.sub(r'\s+END\b', '\nEND', formatted_query, flags=re.IGNORECASE)
+
     select_pattern = re.compile(r'(SELECT\s+)(.*?)(\s+FROM\s+)', re.IGNORECASE | re.DOTALL)
-    formatted_query = select_pattern.sub(lambda m: m.group(1) + '\n    ' + m.group(2).replace(', ', ',\n    ') + '\n' + m.group(3), formatted_query)
+    formatted_query = select_pattern.sub(lambda m: m.group(1) + '\n    ' + ',\n    '.join(m.group(2).split(',')) + m.group(3), formatted_query)
 
     formatted_query = re.sub(r'\n\s*\n', '\n', formatted_query)
 
     lines = formatted_query.split('\n')
     adjusted_query = []
     indent_level = 0
+
     for line in lines:
         stripped_line = line.strip()
         
@@ -51,17 +58,17 @@ def beautify_sql(sql_query):
         elif re.match(r'END\b', stripped_line, re.IGNORECASE):
             indent_level -= 1
             adjusted_query.append(' ' * (indent_level * 4) + stripped_line)
+        elif re.match(r'SELECT\b', stripped_line, re.IGNORECASE):
+            adjusted_query.append(' ' * (indent_level * 4) + stripped_line)
+            indent_level += 1
+        elif re.match(r'FROM\b', stripped_line, re.IGNORECASE):
+            indent_level -= 1
+            adjusted_query.append(' ' * (indent_level * 4) + stripped_line)
+        elif stripped_line.startswith('AND') or stripped_line.startswith('OR'):
+            adjusted_query.append(' ' * (indent_level * 4) + stripped_line)
         else:
-            if stripped_line.startswith('AND') or stripped_line.startswith('OR'):
-                indent_level = 1
-            if stripped_line.endswith(')'):
-                indent_level -= 1
-
             adjusted_query.append(' ' * (indent_level * 4) + stripped_line)
 
-            if stripped_line.endswith('('):
-                indent_level += 1
-    
     return '\n'.join(adjusted_query)
 
 @client.event
