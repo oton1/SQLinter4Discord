@@ -12,64 +12,46 @@ intents.message_content = True
 client = discord.Client(intents=intents)
 
 def beautify_sql(sql_query):
-    functions_to_format = [
-        'avg', 'count', 'max', 'min', 'sum', 'abs', 'ceil', 'floor', 'round', 'mod',
-        'current_date', 'current_time', 'current_timestamp', 'date_add', 'date_sub', 
-        'datediff', 'now', 'to_date', 'to_char', 'to_timestamp', 'concat', 'length', 
-        'lower', 'upper', 'substring', 'trim', 'ltrim', 'rtrim', 'replace', 'coalesce', 
-        'nullif', 'case', 'if', 'like'
-    ]
-    
-    for func in functions_to_format:
-        sql_query = re.sub(rf'\b{func}\b', func.upper(), sql_query, flags=re.IGNORECASE)
-
-    formatted_query = sqlparse.format(
-        sql_query,
-        reindent=True,
-        keyword_case='upper',
-        indent_tabs=False,
-        indent_width=4,
-        wrap_after=80,
-    )
-
-    formatted_query = re.sub(r'\s+CASE\b', '\nCASE', formatted_query, flags=re.IGNORECASE)
-    formatted_query = re.sub(r'\s+WHEN\b', '\nWHEN', formatted_query, flags=re.IGNORECASE)
-    formatted_query = re.sub(r'\s+THEN\b', '\nTHEN', formatted_query, flags=re.IGNORECASE)
-    formatted_query = re.sub(r'\s+ELSE\b', '\nELSE', formatted_query, flags=re.IGNORECASE)
-    formatted_query = re.sub(r'\s+END\b', '\nEND', formatted_query, flags=re.IGNORECASE)
-
-    select_pattern = re.compile(r'(SELECT\s+)(.*?)(\s+FROM\s+)', re.IGNORECASE | re.DOTALL)
-    formatted_query = select_pattern.sub(lambda m: m.group(1) + '\n    ' + ',\n    '.join(m.group(2).split(',')) + m.group(3), formatted_query)
-
-    formatted_query = re.sub(r'\n\s*\n', '\n', formatted_query)
-
-    lines = formatted_query.split('\n')
-    adjusted_query = []
-    indent_level = 0
+    lines = sql_query.split('\n')
+    formatted_lines = []
 
     for line in lines:
-        stripped_line = line.strip()
-        
-        if re.match(r'CASE\b', stripped_line, re.IGNORECASE):
-            adjusted_query.append(' ' * (indent_level * 4) + stripped_line)
-            indent_level += 1
-        elif re.match(r'WHEN\b|THEN\b|ELSE\b', stripped_line, re.IGNORECASE):
-            adjusted_query.append(' ' * (indent_level * 4) + stripped_line)
-        elif re.match(r'END\b', stripped_line, re.IGNORECASE):
-            indent_level -= 1
-            adjusted_query.append(' ' * (indent_level * 4) + stripped_line)
-        elif re.match(r'SELECT\b', stripped_line, re.IGNORECASE):
-            adjusted_query.append(' ' * (indent_level * 4) + stripped_line)
-            indent_level += 1
-        elif re.match(r'FROM\b', stripped_line, re.IGNORECASE):
-            indent_level -= 1
-            adjusted_query.append(' ' * (indent_level * 4) + stripped_line)
-        elif stripped_line.startswith('AND') or stripped_line.startswith('OR'):
-            adjusted_query.append(' ' * (indent_level * 4) + stripped_line)
+        if '--' in line:
+            formatted_lines.append(line)
         else:
-            adjusted_query.append(' ' * (indent_level * 4) + stripped_line)
-
-    return '\n'.join(adjusted_query)
+            functions_to_format = [
+                'avg', 'count', 'max', 'min', 'sum', 'abs', 'ceil', 'floor', 'round', 'mod',
+                'current_date', 'current_time', 'current_timestamp', 'date_add', 'date_sub', 
+                'datediff', 'now', 'to_date', 'to_char', 'to_timestamp', 'concat', 'length', 
+                'lower', 'upper', 'substring', 'trim', 'ltrim', 'rtrim', 'replace', 'coalesce', 
+                'nullif', 'case', 'if', 'like'
+            ]
+            
+            for func in functions_to_format:
+                line = re.sub(rf'\b{func}\b', func.upper(), line, flags=re.IGNORECASE)
+            
+            formatted_query = sqlparse.format(
+                line,
+                reindent=True,
+                keyword_case='upper',
+                indent_tabs=False,
+                indent_width=4,
+                wrap_after=80,
+            )
+            
+            formatted_query = re.sub(r'\s+CASE\b', '\nCASE', formatted_query, flags=re.IGNORECASE)
+            formatted_query = re.sub(r'\s+WHEN\b', '\nWHEN', formatted_query, flags=re.IGNORECASE)
+            formatted_query = re.sub(r'\s+THEN\b', '\nTHEN', formatted_query, flags=re.IGNORECASE)
+            formatted_query = re.sub(r'\s+ELSE\b', '\nELSE', formatted_query, flags=re.IGNORECASE)
+            formatted_query = re.sub(r'\s+END\b', '\nEND', formatted_query, flags=re.IGNORECASE)
+            
+            select_pattern = re.compile(r'(SELECT\s+)(.*?)(\s+FROM\s+)', re.IGNORECASE | re.DOTALL)
+            formatted_query = select_pattern.sub(lambda m: m.group(1) + '\n    ' + ',\n    '.join(m.group(2).split(',')) + m.group(3), formatted_query)
+            
+            formatted_query = re.sub(r'\n\s*\n', '\n', formatted_query)
+            formatted_lines.append(formatted_query)
+    
+    return '\n'.join(formatted_lines)
 
 @client.event
 async def on_message(message):
