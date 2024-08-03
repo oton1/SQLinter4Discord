@@ -82,6 +82,8 @@ async def on_message(message):
         embed = discord.Embed(title="SQLinter", description="Use `!sql <your SQL query>` ou anexe um arquivo .txt com a query.", color=0x00ff00)
         await message.channel.send(embed=embed)
 
+print ('Starting bot...')
+
 @client.event
 async def on_ready():
     print(f'{client.user} has connected to Discord!')
